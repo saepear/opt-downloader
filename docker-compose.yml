@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:/data/app.db"
+      AUTH_SECRET: "${AUTH_SECRET}"
+      CRON_SECRET: "${CRON_SECRET}"
+      DOWNLOAD_DIR: "/data/downloads"
+      NODE_ENV: "production"
+      YT_DLP_BIN: "/usr/bin/yt-dlp"
+      FFMPEG_BIN: "/usr/bin/ffmpeg"
+      SPOTDL_BIN: "spotdl"
+    volumes:
+      - app-data:/data
+    restart: unless-stopped
+
+volumes:
+  app-data:
