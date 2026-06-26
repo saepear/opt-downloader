@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import type { AudioFormat, DownloadStatus } from "@/lib/types";
+import { useLang } from "@/lib/i18n";
 import toast from "react-hot-toast";
 
 interface PlaylistEntry {
@@ -26,18 +27,22 @@ interface PlaylistPreviewProps {
 
 type PStatus = "idle" | "detecting" | DownloadStatus | "done";
 
-const STATUS_TEXTS: Record<string, string> = {
-  idle: "",
-  detecting: "Detectando playlist…",
-  queued: "En cola…",
-  downloading: "Descargando tracks…",
-  converting: "Creando ZIP…",
-  ready: "Descarga lista",
-  error: "Error",
-  done: "",
-};
-
 export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
+  const { t } = useLang();
+
+  function statusText(status: string): string {
+    switch (status) {
+      case "idle": return "";
+      case "detecting": return t("playlist.detecting");
+      case "queued": return t("df.queued");
+      case "downloading": return t("playlist.downloading");
+      case "converting": return t("playlist.creating_zip");
+      case "ready": return t("playlist.dl_ready");
+      case "error": return t("df.error");
+      case "done": return "";
+      default: return status;
+    }
+  }
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<PlaylistData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -115,7 +120,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
     try {
       const res = await fetch(`/api/download/${jobId}`);
       if (!res.ok) {
-        toast.error("Error al descargar el ZIP");
+        toast.error(t("playlist.error_zip"));
         setDlStatus("error");
         return;
       }
@@ -130,17 +135,17 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       a.remove();
       URL.revokeObjectURL(objectUrl);
 
-      toast.success("Playlist lista");
+      toast.success(t("playlist.ready"));
       setTimeout(() => setDlStatus("done"), 200);
     } catch {
       setDlStatus("error");
-      toast.error("Error al descargar el ZIP");
+      toast.error(t("playlist.error_zip"));
     }
   }, []);
 
   const handleDownload = useCallback(async () => {
     if (!data || selected.size === 0) {
-      toast.error("Selecciona al menos un track");
+      toast.error(t("playlist.select_track"));
       return;
     }
 
@@ -162,7 +167,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
         setDlStatus("error");
-        toast.error(body.message ?? "Error al iniciar descarga");
+        toast.error(body.message ?? t("playlist.error_start"));
         return;
       }
 
@@ -170,7 +175,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       jobId = body.jobId;
     } catch (err) {
       setDlStatus("error");
-      toast.error((err as Error).message ?? "Error de red");
+      toast.error((err as Error).message ?? t("playlist.error_network"));
       return;
     }
 
@@ -192,7 +197,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       if (job.status === "error") {
         sse.close();
         sseRef.current = null;
-        toast.error(job.error ?? "Error al descargar playlist");
+        toast.error(job.error ?? t("playlist.error_dl"));
       }
 
       if (job.status === "ready") {
@@ -207,7 +212,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       sse.close();
       sseRef.current = null;
       setDlStatus("error");
-      toast.error("Conexión perdida");
+      toast.error(t("playlist.conn_lost"));
     };
   }, [data, selected, url, format, downloadZip]);
 
@@ -222,13 +227,13 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       <div className="flex items-start justify-between gap-4 mb-3">
         <div className="min-w-0">
           <h3 className="text-sm font-semibold text-amber-300 truncate">
-            Playlist detectada
+            {t("playlist.detected")}
           </h3>
           <p className="text-xs text-foreground/60 mt-0.5 truncate">
             {data.playlistTitle}
           </p>
           <p className="text-xs text-foreground/50 mt-0.5">
-            {data.playlistCount} tracks · mostrando primeras {entries.length}
+            {t("playlist.tracks", { count: data.playlistCount, shown: entries.length })}
           </p>
         </div>
         {!isActive && (
@@ -238,7 +243,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
               onClick={selectAll}
               className="text-[11px] uppercase tracking-wider text-foreground/50 hover:text-foreground/80"
             >
-              Todo
+              {t("playlist.select_all")}
             </button>
             <span className="text-[11px] text-foreground/30">·</span>
             <button
@@ -246,7 +251,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
               onClick={deselectAll}
               className="text-[11px] uppercase tracking-wider text-foreground/50 hover:text-foreground/80"
             >
-              Ninguno
+              {t("playlist.select_none")}
             </button>
           </div>
         )}
@@ -284,7 +289,7 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
       {isActive && (
         <div className="mb-3">
           <div className="flex items-center gap-3 mb-2">
-            <span className="text-xs text-foreground/70">{STATUS_TEXTS[dlStatus] ?? dlStatus}</span>
+            <span className="text-xs text-foreground/70">{statusText(dlStatus)}</span>
             <span className="text-xs text-foreground/40">{dlProgress}%</span>
           </div>
           <div className="h-2 bg-foreground/10 rounded-full overflow-hidden">
@@ -303,17 +308,17 @@ export function PlaylistPreview({ url, format }: PlaylistPreviewProps) {
             onClick={handleDownload}
             disabled={selected.size === 0}
           >
-            Descargar ZIP ({selected.size} tracks)
+            {t("playlist.download_zip", { count: selected.size })}
           </Button>
         )}
         {dlStatus === "done" && (
-          <span className="text-sm text-emerald-400">✓ Playlist lista</span>
+          <span className="text-sm text-emerald-400">{t("playlist.ready")}</span>
         )}
         {dlStatus === "error" && (
-          <span className="text-sm text-rose-400">✗ Error</span>
+          <span className="text-sm text-rose-400">{t("df.error")}</span>
         )}
         {loading && (
-          <span className="text-xs text-foreground/50">Detectando…</span>
+          <span className="text-xs text-foreground/50">{t("playlist.detecting_dots")}</span>
         )}
       </div>
     </Card>

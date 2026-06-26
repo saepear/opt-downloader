@@ -5,7 +5,7 @@
  */
 
 /** Formato de audio solicitado por el usuario. */
-export type AudioFormat = "mp3-320" | "best";
+export type AudioFormat = "mp3-320" | "best" | "wav" | "flac";
 
 /** Cuerpo del POST /api/download. Validado con Zod en el route handler. */
 export interface DownloadRequest {

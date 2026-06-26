@@ -252,26 +252,13 @@ export function downloadAudio(
         outTemplate,
       ];
 
-      const formatArgs =
-        format === "mp3-320"
-          ? [
-              "-x",
-              "--audio-format",
-              "mp3",
-              "--audio-quality",
-              "320K",
-            ]
-          : [
-              // "best" = mejor audio sin recodificar. Pedimos "best audio only"
-              // y dejamos que yt-dlp elija el contenedor nativo (típicamente
-              // m4a/AAC desde iOS/streaming o webm/Opus desde YouTube). El
-              // nombre del archivo de salida reflejará la extensión real.
-              "-f",
-              "bestaudio/best",
-              "--extract-audio",
-              "--audio-format",
-              "best",
-            ];
+      const FORMAT_MAP: Record<string, string[]> = {
+        "mp3-320": ["-x", "--audio-format", "mp3", "--audio-quality", "320K"],
+        best: ["-f", "bestaudio/best", "--extract-audio", "--audio-format", "best"],
+        wav: ["-x", "--audio-format", "wav"],
+        flac: ["-x", "--audio-format", "flac"],
+      };
+      const formatArgs = FORMAT_MAP[format] ?? FORMAT_MAP.best;
 
       const args = [
         ...baseArgs,

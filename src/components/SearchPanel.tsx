@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { detectPlatform } from "@/lib/platforms";
 import type { SearchResult } from "@/lib/search";
+import { useLang } from "@/lib/i18n";
 import toast from "react-hot-toast";
 
 interface SearchPanelProps {
@@ -17,6 +18,7 @@ interface SearchResultItem extends SearchResult {
 }
 
 export function SearchPanel({ onSelectResult }: SearchPanelProps) {
+  const { t } = useLang();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResultItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -26,7 +28,7 @@ export function SearchPanel({ onSelectResult }: SearchPanelProps) {
   const handleSearch = useCallback(async () => {
     const q = query.trim();
     if (!q) {
-      toast.error("Escribe un término de búsqueda");
+      toast.error(t("search.no_query"));
       return;
     }
     setLoading(true);
@@ -66,7 +68,7 @@ export function SearchPanel({ onSelectResult }: SearchPanelProps) {
   return (
     <Card className="w-full max-w-2xl">
       <h2 className="text-sm font-medium text-foreground/80 mb-3">
-        Buscar por nombre
+        {t("search.placeholder")}
       </h2>
       <div className="flex gap-2">
         <Input
@@ -80,13 +82,13 @@ export function SearchPanel({ onSelectResult }: SearchPanelProps) {
           autoComplete="off"
         />
         <Button type="button" onClick={handleSearch} disabled={loading || !query.trim()}>
-          {loading ? "Buscando…" : "Buscar"}
+          {loading ? t("search.searching") : t("search.button")}
         </Button>
       </div>
 
       {searched && !loading && results.length === 0 && (
         <p className="text-sm text-foreground/50 mt-4">
-          Sin resultados para <strong>&ldquo;{query}&rdquo;</strong>
+          {t("search.no_results")} <strong>&ldquo;{query}&rdquo;</strong>
         </p>
       )}
 
