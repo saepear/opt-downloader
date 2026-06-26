@@ -1,34 +1,40 @@
 "use client";
 
 import { useState } from "react";
-import { DownloadForm } from "@/components/DownloadForm";
+import { Navbar } from "@/components/Navbar";
 import { Hero } from "@/components/Hero";
-import { SearchPanel } from "@/components/SearchPanel";
-import { PlaylistPreview } from "@/components/PlaylistPreview";
+import { DownloadForm } from "@/components/DownloadForm";
+import { FeaturesSection } from "@/components/FeaturesSection";
+import { PlatformsMarquee } from "@/components/PlatformsMarquee";
+import { HowItWorks } from "@/components/HowItWorks";
+import { HistoryPreview } from "@/components/HistoryPreview";
+import { FAQSection } from "@/components/FAQSection";
+import { Footer } from "@/components/Footer";
+import { NotesBackground } from "@/components/NotesBackground";
 import type { AudioFormat } from "@/lib/types";
-import toast from "react-hot-toast";
 
 export default function Home() {
   const [targetUrl, setTargetUrl] = useState("");
-  const [format, setFormat] = useState<AudioFormat>("mp3-320");
-
-  function handleSelectResult(url: string, title: string) {
-    setTargetUrl(url);
-    toast.success(`"${title}" seleccionado`);
-  }
+  const [, setFormat] = useState<AudioFormat>("mp3-320");
 
   return (
-    <main className="flex flex-1 w-full flex-col items-center justify-start px-6 py-16 gap-10">
-      <Hero />
-      <SearchPanel onSelectResult={handleSelectResult} />
-      <div className="flex flex-col items-center gap-4 w-full max-w-2xl">
+    <>
+      <Navbar />
+      <NotesBackground />
+      <main className="flex flex-1 flex-col relative z-10">
+        <Hero />
         <DownloadForm
           url={targetUrl}
           onUrlChange={setTargetUrl}
           onFormatChange={setFormat}
         />
-        <PlaylistPreview url={targetUrl} format={format} />
-      </div>
-    </main>
+        <FeaturesSection />
+        <PlatformsMarquee />
+        <HowItWorks />
+        <HistoryPreview />
+        <FAQSection />
+      </main>
+      <Footer />
+    </>
   );
 }
