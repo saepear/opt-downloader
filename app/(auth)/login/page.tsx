@@ -9,14 +9,12 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { shake } from "@/lib/animations";
-
-/**
- * Next 16 obliga a envolver `useSearchParams()` en un Suspense boundary
- * (cambio breaking vs Next 14/15). Por eso separamos el componente real
- * del wrapper de Suspense.
- */
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { useLang } from "@/lib/i18n";
 
 function LoginForm() {
+  const { t } = useLang();
   const router = useRouter();
   const params = useSearchParams();
   const from = params.get("from") ?? "/history";
@@ -30,7 +28,7 @@ function LoginForm() {
     e.preventDefault();
     if (!email || !password) {
       if (formRef) shake(formRef);
-      toast.error("Completa email y contraseña");
+      toast.error(t("login.fill"));
       return;
     }
     setSubmitting(true);
@@ -42,21 +40,19 @@ function LoginForm() {
     setSubmitting(false);
 
     if (!res || res.error) {
-      toast.error("Email o contraseña incorrectos");
+      toast.error(t("login.invalid"));
       if (formRef) shake(formRef);
       return;
     }
-    toast.success("Bienvenido");
+    toast.success(t("login.welcome"));
     router.push(from);
     router.refresh();
   }
 
   return (
     <Card className="w-full max-w-md">
-      <h1 className="text-2xl font-semibold mb-1">Iniciar sesión</h1>
-      <p className="text-sm text-foreground/60 mb-6">
-        Entra para ver tu historial y volver a descargar tus tracks.
-      </p>
+      <h1 className="text-2xl font-semibold mb-1">{t("login.title")}</h1>
+      <p className="text-sm text-foreground/60 mb-6">{t("login.subtitle")}</p>
       <form
         ref={setFormRef}
         onSubmit={handleSubmit}
@@ -64,7 +60,7 @@ function LoginForm() {
       >
         <div className="flex flex-col gap-1.5">
           <label htmlFor="email" className="text-xs uppercase tracking-wider text-foreground/70">
-            Email
+            {t("login.email")}
           </label>
           <Input
             id="email"
@@ -78,7 +74,7 @@ function LoginForm() {
         </div>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="password" className="text-xs uppercase tracking-wider text-foreground/70">
-            Contraseña
+            {t("login.password")}
           </label>
           <Input
             id="password"
@@ -91,16 +87,16 @@ function LoginForm() {
           />
         </div>
         <Button type="submit" disabled={submitting}>
-          {submitting ? "Entrando…" : "Entrar"}
+          {submitting ? t("login.logging_in") : t("login.submit")}
         </Button>
       </form>
       <p className="text-sm text-foreground/60 mt-6">
-        ¿No tienes cuenta?{" "}
+        {t("login.no_account")}{" "}
         <Link
           href="/register"
           className="text-fuchsia-400 hover:text-fuchsia-300 underline-offset-4 hover:underline"
         >
-          Regístrate
+          {t("login.register")}
         </Link>
       </p>
     </Card>
@@ -108,7 +104,6 @@ function LoginForm() {
 }
 
 function LoginFallback() {
-  // Skeleton mínimo mientras el componente real se hidrata.
   return (
     <Card className="w-full max-w-md">
       <div className="h-7 w-40 bg-white/10 rounded mb-2" />
@@ -122,10 +117,14 @@ function LoginFallback() {
 
 export default function LoginPage() {
   return (
-    <main className="flex flex-1 items-center justify-center px-6 py-16">
-      <Suspense fallback={<LoginFallback />}>
-        <LoginForm />
-      </Suspense>
-    </main>
+    <>
+      <Navbar />
+      <main className="flex flex-1 items-center justify-center px-6 py-16 relative z-10">
+        <Suspense fallback={<LoginFallback />}>
+          <LoginForm />
+        </Suspense>
+      </main>
+      <Footer />
+    </>
   );
 }
