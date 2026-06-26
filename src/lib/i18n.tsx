@@ -1,0 +1,437 @@
+"use client";
+
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+
+export type Lang = "es" | "en";
+
+const LANG_STORAGE_KEY = "puremp3-lang";
+
+const translations: Record<Lang, Record<string, string>> = {
+  es: {
+    // Navbar
+    "nav.search": "Buscar",
+    "nav.history": "Historial",
+    "nav.login": "Login",
+    "nav.features": "Características",
+    "nav.faq": "FAQ",
+    // Hero
+    "hero.title1": "Descarga MP3 Desde",
+    "hero.title2": "Cualquier Plataforma",
+    "hero.eyebrow": "Music downloader",
+    "hero.subtitle": "Pega cualquier enlace — YouTube, Spotify, SoundCloud — y descarga MP3 de alta calidad al instante. Sin necesidad de registro.",
+    "hero.badge.320": "320kbps",
+    "hero.badge.fast": "Rápido",
+    "hero.badge.multi": "Multiplataforma",
+    "hero.badge.noads": "Sin anuncios",
+    "hero.stat.downloads_today": "12,483",
+    "hero.stat.downloaded_today": "descargas hoy",
+    // DownloadForm
+    "df.placeholder": "Pega una URL de música — YouTube, Spotify, SoundCloud...",
+    "df.paste": "Pegar",
+    "df.platform": "Plataforma",
+    "df.drm": "usa DRM — no se puede descargar desde aquí.",
+    "df.external": "— búsqueda en YouTube con metadatos originales.",
+    "df.mp3": "MP3",
+    "df.best": "Mejor",
+    "df.wav": "WAV",
+    "df.flac": "FLAC",
+    "df.mp3sub": "320kbps",
+    "df.bestsub": "Disponible",
+    "df.wavsub": "Sin pérdida",
+    "df.flacsub": "Sin pérdida",
+    "df.download": "Descargar",
+    "df.queued": "En cola…",
+    "df.fetching": "Obteniendo…",
+    "df.converting": "Procesando…",
+    "df.ready": "Descarga lista",
+    "df.error": "Error — revisa el mensaje",
+    "df.remaining": "{n}/10 descargas gratis restantes",
+    "df.downloading": "Descargando {n}%",
+    "df.limit": "Has alcanzado el límite de 10 descargas por día. Vuelve mañana.",
+    "df.url_detected": "URL detectada",
+    "df.invalid_url": "Pega una URL válida (http/https)",
+    "df.clipboard_error": "No se pudo acceder al portapapeles",
+    "df.connection_lost": "Conexión perdida con el servidor",
+    "df.download_ready": "Descarga lista",
+    "df.network_error": "Error de red",
+    "df.step.paste": "Pega",
+    "df.step.quality": "Calidad",
+    "df.step.download": "Descarga",
+    "df.step.tag": "En 3 pasos",
+    // Features
+    "features.label": "Características",
+    "features.title": "Todo lo que Necesitas",
+    "features.subtitle": "Tres potentes funciones diseñadas para los amantes de la música que nunca quieren estar offline.",
+    "features.multi.title": "Multiplataforma",
+    "features.multi.desc": "Funciona con YouTube, Spotify, SoundCloud, TikTok, Bandcamp y más. Un enlace, cualquier fuente.",
+    "features.quality.title": "Alta Calidad",
+    "features.quality.desc": "Descarga en MP3 320kbps prístino o WAV/FLAC sin pérdida. Tu música se merece lo mejor.",
+    "features.private.title": "Descargas Privadas",
+    "features.private.desc": "Tus descargas permanecen privadas. Sin rastreo, sin registros, sin recolección de datos. Siempre.",
+    // Platforms
+    "platforms.label": "Plataformas Soportadas",
+    "platforms.title": "10+ fuentes, un solo descargador",
+    // How it works
+    "how.label": "Cómo Funciona",
+    "how.title": "Tres Simples Pasos",
+    "how.subtitle": "Ve de un enlace a música offline en menos de 10 segundos.",
+    "how.paste.title": "Pega el Enlace",
+    "how.paste.desc": "Copia cualquier URL de música y pégala en el descargador de arriba.",
+    "how.select.title": "Elige Calidad",
+    "how.select.desc": "Selecciona tu formato preferido — MP3, WAV o FLAC sin pérdida.",
+    "how.download.title": "Descarga al Instante",
+    "how.download.desc": "Tu archivo se procesa y está listo para descargar en segundos.",
+    // History
+    "history.label": "Historial",
+    "history.title": "Tu Biblioteca, En Orden",
+    "history.subtitle": "Métricas en vivo y un vistazo de cómo luce tu historial cuando guardas tus descargas.",
+    "history.empty": "Tu historial de descargas aparece aquí después de iniciar sesión.",
+    "history.cta": "Crear cuenta gratuita",
+    "history.cta_text": "Guarda tus descargas, retómalas en cualquier dispositivo, nunca pierdas un track.",
+    "history.live": "En vivo",
+    "history.view_all": "Ver todo",
+    "history.sample.1.ago": "hace 2 min",
+    "history.sample.2.ago": "hace 8 min",
+    "history.sample.3.ago": "hace 14 min",
+    "history.stat.today": "Descargas hoy",
+    "history.stat.total": "Descargas totales",
+    "history.stat.avg_time": "Tiempo promedio",
+    // FAQ
+    "faq.label": "FAQ",
+    "faq.title": "Preguntas Frecuentes",
+    "faq.subtitle": "Todo lo que necesitas saber antes de pegar tu primer enlace.",
+    "faq.q1": "¿PureMP3 es gratuito?",
+    "faq.a1": "¡Sí! PureMP3 es completamente gratis con 10 descargas al día en MP3 320kbps, más formatos WAV y FLAC sin pérdida.",
+    "faq.q2": "¿Qué plataformas soportan?",
+    "faq.a2": "Soportamos YouTube, Spotify, SoundCloud, TikTok, Bandcamp y muchas más. Se añaden nuevas plataformas regularmente.",
+    "faq.q3": "¿Qué formatos de audio están disponibles?",
+    "faq.a3": "Puedes descargar MP3 a 320kbps, WAV sin pérdida y FLAC. Todos los formatos están disponibles para todos.",
+    "faq.q4": "¿Mis datos están seguros?",
+    "faq.a4": "Absolutamente. No rastreamos, registramos ni almacenamos tus descargas. Tu privacidad está integrada en el producto.",
+    "faq.more_questions": "¿Tienes otra pregunta?",
+    "faq.contact": "Contáctanos",
+    // Footer
+    "footer.terms": "Términos",
+    "footer.privacy": "Privacidad",
+    "footer.dmca": "DMCA",
+    "footer.contact": "Contacto",
+    "footer.tagline": "El descargador de música más rápido para viajeros, nómadas digitales y melómanos que no quieren estar offline.",
+    "footer.status": "Sistemas operativos",
+    "footer.col.product": "Producto",
+    "footer.col.legal": "Legal",
+    "footer.col.community": "Comunidad",
+    "footer.features": "Características",
+    "footer.how": "Cómo funciona",
+    "footer.faq_link": "Preguntas frecuentes",
+    "footer.playlists": "Playlists",
+    "footer.community_text": "Síguenos para enterarte de nuevas plataformas y formatos.",
+    "footer.rights": "Todos los derechos reservados.",
+    "footer.built_with": "Hecho con ♥ para melómanos offline",
+    // Search page
+    "search.title": "Buscar música",
+    "search.placeholder": "Artista o canción…",
+    "search.button": "Buscar",
+    "search.searching": "Buscando…",
+    "search.no_query": "Escribe un término de búsqueda",
+    "search.no_results": "Sin resultados para",
+    "search.selected": "seleccionado",
+    // Playlist page
+    "playlist.title": "Descargar Playlist",
+    "playlist.subtitle": "Pega una URL de playlist para descargar todos los tracks como ZIP.",
+    "playlist.placeholder": "https://www.youtube.com/playlist?list=...",
+    "playlist.detected": "Playlist detectada",
+    "playlist.tracks": "{count} tracks · mostrando primeras {shown}",
+    "playlist.select_all": "Todo",
+    "playlist.select_none": "Ninguno",
+    "playlist.download_zip": "Descargar ZIP ({count} tracks)",
+    "playlist.ready": "Playlist lista",
+    "playlist.select_track": "Selecciona al menos un track",
+    "playlist.detecting": "Detectando playlist…",
+    "playlist.downloading": "Descargando tracks…",
+    "playlist.creating_zip": "Creando ZIP…",
+    "playlist.dl_ready": "Descarga lista",
+    "playlist.error_zip": "Error al descargar el ZIP",
+    "playlist.error_start": "Error al iniciar descarga",
+    "playlist.error_network": "Error de red",
+    "playlist.error_dl": "Error al descargar playlist",
+    "playlist.conn_lost": "Conexión perdida",
+    "playlist.detecting_dots": "Detectando…",
+    // Login page
+    "login.title": "Iniciar sesión",
+    "login.subtitle": "Entra para ver tu historial y volver a descargar tus tracks.",
+    "login.email": "Email",
+    "login.password": "Contraseña",
+    "login.submit": "Entrar",
+    "login.logging_in": "Entrando…",
+    "login.no_account": "¿No tienes cuenta?",
+    "login.register": "Regístrate",
+    "login.invalid": "Email o contraseña incorrectos",
+    "login.welcome": "Bienvenido",
+    "login.fill": "Completa email y contraseña",
+    // Register page
+    "register.title": "Crear cuenta",
+    "register.subtitle": "Tu historial se guarda localmente y solo tú lo ves.",
+    "register.name": "Nombre (opcional)",
+    "register.email": "Email",
+    "register.password": "Contraseña",
+    "register.min_chars": "Mínimo 8 caracteres.",
+    "register.submit": "Crear cuenta",
+    "register.creating": "Creando…",
+    "register.has_account": "¿Ya tienes cuenta?",
+    "register.login": "Inicia sesión",
+    "register.created": "Cuenta creada",
+    "register.auto_login_failed": "Cuenta creada, pero falló el auto-login. Inicia sesión manualmente.",
+    "register.password_short": "La contraseña debe tener al menos 8 caracteres",
+    // History page
+    "history.page_title": "Historial",
+    "history.empty_desc": "Sin descargas todavía.",
+    "history.last": "Últimas {n} descargas.",
+    "history.back": "← Volver",
+    "history.start": "Pega un enlace en la página principal para empezar.",
+    "history.status_ready": "listo",
+    "history.status_error": "error",
+    "history.col_title": "Título",
+    "history.col_platform": "Plataforma",
+    "history.col_format": "Formato",
+    "history.col_status": "Estado",
+    "history.col_date": "Fecha",
+  },
+  en: {
+    // Navbar
+    "nav.search": "Search",
+    "nav.history": "History",
+    "nav.login": "Login",
+    "nav.features": "Features",
+    "nav.faq": "FAQ",
+    // Hero
+    "hero.title1": "Download MP3 From",
+    "hero.title2": "Any Platform",
+    "hero.eyebrow": "Music downloader",
+    "hero.subtitle": "Paste any link — YouTube, Spotify, SoundCloud — and download high-quality MP3 instantly. No sign-up required.",
+    "hero.badge.320": "320kbps",
+    "hero.badge.fast": "Fast",
+    "hero.badge.multi": "Multi-platform",
+    "hero.badge.noads": "No ads",
+    "hero.stat.downloads_today": "12,483",
+    "hero.stat.downloaded_today": "downloads today",
+    // DownloadForm
+    "df.placeholder": "Paste a music URL — YouTube, Spotify, SoundCloud...",
+    "df.paste": "Paste",
+    "df.platform": "Platform",
+    "df.drm": "uses DRM — cannot be downloaded from here.",
+    "df.external": "— search on YouTube with original metadata.",
+    "df.mp3": "MP3",
+    "df.best": "Best",
+    "df.wav": "WAV",
+    "df.flac": "FLAC",
+    "df.mp3sub": "320kbps",
+    "df.bestsub": "Available",
+    "df.wavsub": "Lossless",
+    "df.flacsub": "Lossless",
+    "df.download": "Download",
+    "df.queued": "Queued…",
+    "df.fetching": "Fetching…",
+    "df.converting": "Processing…",
+    "df.ready": "Download ready",
+    "df.error": "Error — check the message",
+    "df.remaining": "{n}/10 free downloads remaining",
+    "df.downloading": "Downloading {n}%",
+    "df.limit": "You've reached the limit of 10 downloads per day. Come back tomorrow.",
+    "df.url_detected": "URL detected",
+    "df.invalid_url": "Paste a valid URL (http/https)",
+    "df.clipboard_error": "Could not access clipboard",
+    "df.connection_lost": "Connection lost with the server",
+    "df.download_ready": "Download ready",
+    "df.network_error": "Network error",
+    "df.step.paste": "Paste",
+    "df.step.quality": "Quality",
+    "df.step.download": "Download",
+    "df.step.tag": "In 3 steps",
+    // Features
+    "features.label": "Features",
+    "features.title": "Everything You Need",
+    "features.subtitle": "Three powerful features designed for music lovers who never want to be offline.",
+    "features.multi.title": "Multi-platform",
+    "features.multi.desc": "Works with YouTube, Spotify, SoundCloud, TikTok, Bandcamp and more. One link, any source.",
+    "features.quality.title": "High Quality Audio",
+    "features.quality.desc": "Download in pristine 320kbps MP3 or lossless WAV/FLAC. Your music deserves the best.",
+    "features.private.title": "Private Downloads",
+    "features.private.desc": "Your downloads stay private. No tracking, no logs, no data collection. Ever.",
+    // Platforms
+    "platforms.label": "Supported Platforms",
+    "platforms.title": "10+ sources, one downloader",
+    // How it works
+    "how.label": "How It Works",
+    "how.title": "Three Simple Steps",
+    "how.subtitle": "Go from link to offline music in under 10 seconds.",
+    "how.paste.title": "Paste Link",
+    "how.paste.desc": "Copy any music URL and paste it into the downloader above.",
+    "how.select.title": "Select Quality",
+    "how.select.desc": "Choose your preferred format — MP3, Best, or lossless WAV/FLAC.",
+    "how.download.title": "Download Instantly",
+    "how.download.desc": "Your file is processed and ready to download in seconds.",
+    // History
+    "history.label": "History",
+    "history.title": "Your Library, In Order",
+    "history.subtitle": "Live metrics and a preview of what your history looks like once you save your downloads.",
+    "history.empty": "Your download history appears here after you sign in.",
+    "history.cta": "Create free account",
+    "history.cta_text": "Save your downloads, pick them up on any device, never lose a track.",
+    "history.live": "Live",
+    "history.view_all": "View all",
+    "history.sample.1.ago": "2 min ago",
+    "history.sample.2.ago": "8 min ago",
+    "history.sample.3.ago": "14 min ago",
+    "history.stat.today": "Downloads today",
+    "history.stat.total": "Total downloads",
+    "history.stat.avg_time": "Average time",
+    // FAQ
+    "faq.label": "FAQ",
+    "faq.title": "Frequently Asked Questions",
+    "faq.subtitle": "Everything you need to know before you paste your first link.",
+    "faq.q1": "Is PureMP3 free to use?",
+    "faq.a1": "Yes! PureMP3 is completely free with 10 downloads per day at 320kbps MP3 quality, plus WAV and FLAC lossless formats.",
+    "faq.q2": "Which platforms do you support?",
+    "faq.a2": "We support YouTube, Spotify, SoundCloud, TikTok, Bandcamp, and many more. New platforms are added regularly.",
+    "faq.q3": "What audio formats are available?",
+    "faq.a3": "You can download MP3 at 320kbps, lossless WAV, and FLAC formats. All formats are available to everyone.",
+    "faq.q4": "Is my data safe?",
+    "faq.a4": "Absolutely. We do not track, log, or store your downloads. Your privacy is built into the product.",
+    "faq.more_questions": "Have another question?",
+    "faq.contact": "Contact us",
+    // Footer
+    "footer.terms": "Terms",
+    "footer.privacy": "Privacy",
+    "footer.dmca": "DMCA",
+    "footer.contact": "Contact",
+    "footer.tagline": "The fastest music downloader for travelers, digital nomads and music lovers who never want to be offline.",
+    "footer.status": "Systems operational",
+    "footer.col.product": "Product",
+    "footer.col.legal": "Legal",
+    "footer.col.community": "Community",
+    "footer.features": "Features",
+    "footer.how": "How it works",
+    "footer.faq_link": "FAQ",
+    "footer.playlists": "Playlists",
+    "footer.community_text": "Follow us to hear about new platforms and formats first.",
+    "footer.rights": "All rights reserved.",
+    "footer.built_with": "Made with ♥ for offline music lovers",
+    // Search page
+    "search.title": "Search music",
+    "search.placeholder": "Artist or song…",
+    "search.button": "Search",
+    "search.searching": "Searching…",
+    "search.no_query": "Type a search term",
+    "search.no_results": "No results for",
+    "search.selected": "selected",
+    // Playlist page
+    "playlist.title": "Playlist Downloader",
+    "playlist.subtitle": "Paste a playlist URL to download all tracks as a ZIP.",
+    "playlist.placeholder": "https://www.youtube.com/playlist?list=...",
+    "playlist.detected": "Playlist detected",
+    "playlist.tracks": "{count} tracks · showing first {shown}",
+    "playlist.select_all": "All",
+    "playlist.select_none": "None",
+    "playlist.download_zip": "Download ZIP ({count} tracks)",
+    "playlist.ready": "Playlist ready",
+    "playlist.select_track": "Select at least one track",
+    "playlist.detecting": "Detecting playlist…",
+    "playlist.downloading": "Downloading tracks…",
+    "playlist.creating_zip": "Creating ZIP…",
+    "playlist.dl_ready": "Download ready",
+    "playlist.error_zip": "Error downloading ZIP",
+    "playlist.error_start": "Error starting download",
+    "playlist.error_network": "Network error",
+    "playlist.error_dl": "Error downloading playlist",
+    "playlist.conn_lost": "Connection lost",
+    "playlist.detecting_dots": "Detecting…",
+    // Login page
+    "login.title": "Sign In",
+    "login.subtitle": "Sign in to view your history and re-download your tracks.",
+    "login.email": "Email",
+    "login.password": "Password",
+    "login.submit": "Sign In",
+    "login.logging_in": "Signing in…",
+    "login.no_account": "Don't have an account?",
+    "login.register": "Register",
+    "login.invalid": "Invalid email or password",
+    "login.welcome": "Welcome",
+    "login.fill": "Fill in email and password",
+    // Register page
+    "register.title": "Create Account",
+    "register.subtitle": "Your history is stored locally and only you can see it.",
+    "register.name": "Name (optional)",
+    "register.email": "Email",
+    "register.password": "Password",
+    "register.min_chars": "Minimum 8 characters.",
+    "register.submit": "Create Account",
+    "register.creating": "Creating…",
+    "register.has_account": "Already have an account?",
+    "register.login": "Sign In",
+    "register.created": "Account created",
+    "register.auto_login_failed": "Account created, but auto-login failed. Sign in manually.",
+    "register.password_short": "Password must be at least 8 characters",
+    // History page
+    "history.page_title": "History",
+    "history.empty_desc": "No downloads yet.",
+    "history.last": "Last {n} downloads.",
+    "history.back": "← Back",
+    "history.start": "Paste a link on the main page to get started.",
+    "history.status_ready": "ready",
+    "history.status_error": "error",
+    "history.col_title": "Title",
+    "history.col_platform": "Platform",
+    "history.col_format": "Format",
+    "history.col_status": "Status",
+    "history.col_date": "Date",
+  },
+};
+
+interface LangContextType {
+  lang: Lang;
+  setLang: (lang: Lang) => void;
+  t: (key: string, params?: Record<string, string | number>) => string;
+}
+
+const LangContext = createContext<LangContextType>({
+  lang: "es",
+  setLang: () => {},
+  t: (key: string) => key,
+});
+
+export function LangProvider({ children, initialLang }: { children: ReactNode; initialLang?: Lang }) {
+  const [lang, setLangState] = useState<Lang>(initialLang ?? "es");
+
+  useEffect(() => {
+    const stored = localStorage.getItem(LANG_STORAGE_KEY);
+    if (stored === "en" || stored === "es") {
+      setLangState(stored);
+    }
+  }, []);
+
+  const setLang = (next: Lang) => {
+    setLangState(next);
+    localStorage.setItem(LANG_STORAGE_KEY, next);
+    document.cookie = `${LANG_STORAGE_KEY}=${next};path=/;max-age=31536000;SameSite=Lax`;
+  };
+
+  const t = (key: string, params?: Record<string, string | number>): string => {
+    let val = translations[lang]?.[key] ?? translations.es[key] ?? key;
+    if (params) {
+      for (const [k, v] of Object.entries(params)) {
+        val = val.replace(`{${k}}`, String(v));
+      }
+    }
+    return val;
+  };
+
+  return (
+    <LangContext.Provider value={{ lang, setLang, t }}>
+      {children}
+    </LangContext.Provider>
+  );
+}
+
+export function useLang() {
+  return useContext(LangContext);
+}
