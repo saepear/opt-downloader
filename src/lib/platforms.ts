@@ -1,26 +1,31 @@
 /**
- * Catálogo de plataformas que yt-dlp puede extraer. El `id` interno es lo
- * que guardamos en logs/DB (Fase 3); `name` es lo que ve el usuario;
- * `pattern` es regex contra la URL.
+ * Catálogo de plataformas que yt-dlp puede extraer.
  *
- * yt-dlp soporta cientos de sitios; este mapa solo declara los más comunes.
+ * Campos:
+ * - `id`: slug estable, kebab-case. Usado en DB y logs.
+ * - `name`: nombre legible para UI.
+ * - `host`: host canónico para mostrar en la UI.
+ * - `pattern`: regex contra la URL completa.
+ * - `hasDrm`: true si la plataforma requiere DRM auth que yt-dlp no puede saltar.
+ * - `usesExternalTool`: true si la plataforma necesita una herramienta externa.
+ * - `color`: hex oficial de la marca (Simple Icons / brand guidelines).
+ * - `paths`: array de paths SVG oficiales de Simple Icons (CC0).
+ *   - 1 path para iconos monocromáticos (YouTube, Spotify, etc.)
+ *   - 2 paths para iconos con chromatic aberration (TikTok: cyan + rosa)
+ *
  * Si yt-dlp logra extraer una URL cuyo dominio no está aquí, devolvemos
  * `unknown` pero seguimos adelante (no bloqueamos).
  */
 
 export interface PlatformInfo {
-  /** slug estable, kebab-case. Usado en DB y logs. */
   id: PlatformId;
-  /** Nombre legible para UI. */
   name: string;
-  /** Regex contra la URL completa. */
   pattern: RegExp;
-  /** Host canónico para mostrar en la UI cuando hace falta. */
   host: string;
-  /** true si la plataforma requiere DRM auth que yt-dlp no puede saltar. */
   hasDrm?: boolean;
-  /** true si la plataforma necesita una herramienta externa (spotDL, etc.). */
   usesExternalTool?: boolean;
+  color: string;
+  paths: readonly string[];
 }
 
 export type PlatformId =
@@ -31,6 +36,9 @@ export type PlatformId =
   | "vimeo"
   | "twitter"
   | "tiktok"
+  | "apple-music"
+  | "deezer"
+  | "mixcloud"
   | "generic"
   | "unknown";
 
@@ -40,6 +48,8 @@ export const PLATFORMS: readonly PlatformInfo[] = [
     name: "YouTube",
     host: "youtube.com",
     pattern: /(?:youtube\.com|youtu\.be|music\.youtube\.com)/i,
+    color: "#FF0000",
+    paths: ["M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"],
   },
   {
     id: "spotify",
@@ -47,36 +57,78 @@ export const PLATFORMS: readonly PlatformInfo[] = [
     host: "open.spotify.com",
     pattern: /open\.spotify\.com/i,
     usesExternalTool: true,
+    color: "#1DB954",
+    paths: ["M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12C24 5.4 18.66 0 12 0zm5.521 17.34c-.24.371-.74.49-1.111.241-3.04-1.86-6.871-2.279-11.391-1.241a.83.83 0 0 1-.99-.61.83.83 0 0 1 .61-.99c4.92-1.121 9.121-.671 12.5 1.391.39.24.49.74.241 1.111-.241.39-.74.49-1.111.241l.252.098zm1.471-3.27c-.301.461-.92.611-1.381.301-3.481-2.139-8.781-2.76-12.891-1.51a1.04 1.04 0 0 1-1.301-.69 1.04 1.04 0 0 1 .691-1.301c4.691-1.41 10.591-.731 14.5 1.7.45.301.6.92.301 1.381l.081.119zm.131-3.41c-4.17-2.481-11.041-2.711-15.021-1.5a1.25 1.25 0 0 1-1.561-.84 1.25 1.25 0 0 1 .841-1.561c4.561-1.381 12.121-1.121 16.901 1.7a1.25 1.25 0 0 1 .421 1.711c-.341.591-1.061.781-1.581.49z"],
   },
   {
     id: "soundcloud",
     name: "SoundCloud",
     host: "soundcloud.com",
     pattern: /soundcloud\.com/i,
+    color: "#FF5500",
+    paths: ["M1.175 12.225c-.051 0-.094.046-.101.1l-.233 2.154.233 2.105c.007.058.05.098.101.098.05 0 .09-.04.099-.098l.255-2.105-.27-2.154c0-.057-.045-.1-.09-.1m-.899.828c-.06 0-.091.037-.104.094L0 14.479l.165 1.308c0 .055.045.094.09.094s.089-.045.104-.104l.21-1.319-.21-1.334c0-.061-.044-.09-.09-.09m1.83-1.229c-.061 0-.12.045-.12.104l-.21 2.563.225 2.458c0 .06.045.12.119.12.061 0 .105-.061.121-.12l.254-2.474-.254-2.548c-.016-.06-.061-.12-.121-.12m.945-.089c-.075 0-.135.06-.15.135l-.193 2.64.21 2.544c.016.077.075.138.149.138.075 0 .135-.061.15-.151l.24-2.531-.24-2.64c0-.075-.06-.135-.135-.135m1.155.36c-.005-.09-.075-.149-.159-.149-.09 0-.158.06-.164.149l-.217 2.43.2 2.563c.005.09.075.157.159.157.074 0 .148-.068.148-.158l.227-2.563-.227-2.444zm.809-1.709c-.101 0-.18.09-.18.181l-.21 3.957.187 2.563c0 .09.08.164.18.164.094 0 .174-.09.18-.18l.209-2.563-.209-3.972c-.008-.104-.088-.18-.18-.18m.959-.914c-.105 0-.195.09-.203.194l-.18 4.872.165 2.548c.015.12.105.21.21.21.104 0 .194-.09.21-.21l.193-2.548-.192-4.856c-.016-.12-.105-.21-.21-.21m.989-.449c-.121 0-.211.089-.225.209l-.165 5.275.165 2.52c.014.119.104.225.225.225.119 0 .209-.105.225-.225l.179-2.52-.18-5.27c-.029-.135-.119-.225-.224-.225m1.245-.405c-.135 0-.241.105-.241.241l-.15 5.776.149 2.46c0 .135.106.24.241.24s.241-.105.241-.24l.164-2.46-.164-5.776c-.016-.135-.121-.241-.241-.241m1.005-.061c-.166 0-.301.121-.316.286l-.135 6.038.135 2.43c.015.164.15.284.316.284.164 0 .3-.12.314-.284l.15-2.43-.15-6.038c-.014-.165-.15-.286-.314-.286m1.245-.27c-.18 0-.33.139-.346.314l-.119 6.291.119 2.4c.016.18.166.314.346.314.18 0 .33-.135.346-.314l.134-2.4-.134-6.291c-.016-.18-.166-.314-.346-.314m1.094.315c-.029-.195-.18-.344-.375-.344s-.345.15-.375.344l-.105 6.045.105 2.385c.03.195.18.344.375.344s.345-.15.375-.344l.135-2.385-.135-6.045zm.764-.045c-.045-.225-.225-.375-.45-.375s-.405.15-.45.375l-.09 6.045.09 2.385c.045.225.225.375.45.375s.405-.15.45-.375l.105-2.385-.105-6.045zm1.169-.479c-.045-.255-.255-.435-.51-.435-.255 0-.465.18-.51.435l-.075 6.074.075 2.385c.045.255.255.435.51.435.255 0 .465-.18.51-.435l.075-2.385-.075-6.074zm.945-.061c-.061-.27-.286-.464-.566-.464-.281 0-.506.194-.566.464l-.061 6.06.061 2.385c.06.27.285.464.566.464.28 0 .505-.194.566-.464l.061-2.385-.061-6.06zm.689-.09c-.075-.314-.314-.524-.629-.524-.316 0-.555.21-.629.524l-.045 6.135.045 2.385c.074.314.313.524.629.524.315 0 .554-.21.629-.524l.045-2.385-.045-6.135zm.599-.149c-.074-.375-.345-.615-.719-.615s-.645.24-.72.615l-.029 6.284.029 2.385c.075.375.345.615.72.615s.644-.24.719-.615l.029-2.385-.029-6.284zm.48-.21c-.09-.405-.405-.675-.81-.675-.405 0-.721.27-.81.675l-.015 6.494.015 2.385c.089.405.405.675.81.675.405 0 .72-.27.81-.675l.015-2.385-.015-6.494zm.404-.181c-.104-.449-.464-.748-.914-.748-.449 0-.81.299-.914.748l-.015 6.69.015 2.385c.104.449.465.748.914.748.45 0 .81-.299.914-.748l.016-2.385-.016-6.69zm.451-.569c0-.524-.42-.96-.945-.96-.524 0-.959.421-.959.96l-.015 7.244.015 2.386c.015.524.435.959.959.959.524 0 .945-.435.945-.96l.016-2.385-.016-7.244z"],
   },
   {
     id: "bandcamp",
     name: "Bandcamp",
     host: "bandcamp.com",
-    pattern: /[\w-]+\.bandcamp\.com|bandcamp\.com/i,
+    pattern: /(?:[\w-]+\.)?bandcamp\.com/i,
+    color: "#629AA9",
+    paths: ["M0 18.75l7.437-13.5H24l-7.438 13.5H0z"],
   },
   {
     id: "vimeo",
     name: "Vimeo",
     host: "vimeo.com",
     pattern: /vimeo\.com/i,
+    color: "#1AB7EA",
+    paths: ["M23.976 6.416c-.105 2.338-1.739 5.543-4.894 9.609-3.268 4.247-6.026 6.37-8.29 6.37-1.409 0-2.578-1.294-3.553-3.881L5.322 11.4C4.603 8.816 3.834 7.522 3.01 7.522c-.179 0-.806.378-1.881 1.132L0 7.197c1.185-1.044 2.351-2.084 3.501-3.128 1.578-1.367 2.764-2.084 3.55-2.155 1.86-.179 3.005 1.093 3.439 3.813.464 2.938.785 4.764.965 5.479.541 2.45 1.138 3.674 1.789 3.674.502 0 1.256-.796 2.265-2.385 1.004-1.589 1.54-2.797 1.612-3.628.144-1.371-.395-2.061-1.614-2.061-.574 0-1.167.121-1.777.391 1.186-3.868 3.434-5.757 6.762-5.677 2.464.065 3.628 1.664 3.493 4.797l-.009.099z"],
   },
   {
     id: "twitter",
-    name: "X / Twitter",
+    name: "X",
     host: "x.com",
     pattern: /(?:twitter\.com|x\.com)\//i,
+    color: "#FFFFFF",
+    paths: ["M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"],
   },
   {
     id: "tiktok",
     name: "TikTok",
     host: "tiktok.com",
-    pattern: /tiktok\.com/i,
+    pattern: /tiktok\.com|vm\.tiktok\.com/i,
+    // DUAL COLOR (chromatic aberration icónico de TikTok):
+    // paths[0] = capa cyan (#25F4EE)
+    // paths[1] = capa rosa/rojo (#FE2C55)
+    color: "#FFFFFF", // el contenedor es neutro; cada path lleva su propio color
+    paths: [
+      "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+      "M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z",
+    ],
+  },
+  {
+    id: "apple-music",
+    name: "Apple Music",
+    host: "music.apple.com",
+    pattern: /music\.apple\.com/i,
+    color: "#FA243C",
+    paths: ["M0 8.064v9.36c0 1.776 1.44 3.12 3.12 3.12 1.776 0 3.136-1.44 3.136-3.12V13.92l8.448-2.4v5.904c0 1.776 1.44 3.12 3.12 3.12 1.776 0 3.136-1.44 3.136-3.12V3.36c0-1.44-.96-2.736-2.4-3.024L4.416.144C1.968-.336-.064 1.152 0 3.6c0 .144.064.288.064.432v4.032z"],
+  },
+  {
+    id: "deezer",
+    name: "Deezer",
+    host: "deezer.com",
+    pattern: /deezer\.com|deezer\.link/i,
+    color: "#A238FF",
+    paths: ["M12 0C5.376 0 0 5.376 0 12s5.376 12 12 12 12-5.376 12-12S18.624 0 12 0zm5.568 14.016H6.816v-2.4h10.752v2.4zm-2.4-4.8H6.816v-2.4h8.352v2.4zm-2.4-4.8H6.816V2.4h5.952v2.4z"],
+  },
+  {
+    id: "mixcloud",
+    name: "Mixcloud",
+    host: "mixcloud.com",
+    pattern: /mixcloud\.com/i,
+    color: "#5000FF",
+    paths: ["M24 4.32v15.36h-3.6v-3.6h-3.6v3.6h-3.6v-3.6h-3.6v3.6h-3.6v-3.6h-3.6v3.6H0v-15.36h3.6V8.16h3.6V4.32h3.6V8.16h3.6V4.32h3.6V8.16h3.6V4.32z"],
   },
 ] as const;
 
@@ -85,13 +137,17 @@ const GENERIC_AUDIO: PlatformInfo = {
   name: "Audio directo",
   host: "URL",
   pattern: /\.(?:mp3|m4a|ogg|opus|wav|flac)(?:\?|$)/i,
+  color: "#94a3b8",
+  paths: [],
 };
 
 const UNKNOWN: PlatformInfo = {
   id: "unknown",
-  name: "URL desconocida",
+  name: "",
   host: "?",
   pattern: /^$/,
+  color: "#94a3b8",
+  paths: [],
 };
 
 /**
@@ -101,6 +157,7 @@ const UNKNOWN: PlatformInfo = {
  * igual y yt-dlp decidirá.
  */
 export function detectPlatform(url: string): PlatformInfo {
+  if (!url || !url.trim()) return UNKNOWN;
   for (const p of PLATFORMS) {
     if (p.pattern.test(url)) return p;
   }
@@ -108,5 +165,5 @@ export function detectPlatform(url: string): PlatformInfo {
   return UNKNOWN;
 }
 
-/** Lista de plataformas reconocidas, para mostrar en la landing (Fase 4). */
-export const SUPPORTED_PLATFORMS = PLATFORMS.filter((p) => !p.hasDrm);
+/** Lista de plataformas reconocidas con icono propio, para landing/SearchPanel. */
+export const SUPPORTED_PLATFORMS = PLATFORMS;

@@ -47,13 +47,65 @@ function IconSvg({
 
 const ICONS = {
   paste: "M15 2H9a1 1 0 00-1 1v2c0 .6.4 1 1 1h6c.6 0 1-.4 1-1V3c0-.6-.4-1-1-1zM8 4H6a2 2 0 00-2 2v14c0 1.1.9 2 2 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2M12 11h4M12 16h4M8 11h.01M8 16h.01",
-  music: "M9 18V5l12-2v13",
   download: "M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3",
   check: "M20 6L9 17l-5-5",
   alert: "M12 22a10 10 0 100-20 10 10 0 000 20zM12 8v4M12 16h.01",
   sparkle: "M12 2l1.7 5.3L19 9l-5.3 1.7L12 16l-1.7-5.3L5 9l5.3-1.7L12 2z",
   link: "M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71",
 };
+
+/**
+ * Render oficial del icono de una plataforma detectada.
+ * - Si `platform.paths` está vacío (generic / unknown) → icono link muted
+ * - Si tiene 1 path → icono monocromático con `currentColor = platform.color`
+ * - Si tiene 2 paths (TikTok dual-color) → renderiza ambos con colores
+ *   cyan (#25F4EE) + rosa (#FE2C55) en <g> superpuestos
+ */
+function PlatformIcon({
+  platform,
+  size = 14,
+}: {
+  platform: PlatformInfo;
+  size?: number;
+}) {
+  if (!platform.paths.length) {
+    return (
+      <IconSvg d={ICONS.link} size={size} strokeWidth={2} />
+    );
+  }
+  const offset = platform.id === "tiktok" ? 0.6 : 0;
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        color: platform.color,
+        flexShrink: 0,
+        display: "inline-block",
+      }}
+    >
+      {platform.id === "tiktok" ? (
+        <>
+          <path
+            d={platform.paths[0]}
+            style={{ color: "#25F4EE", transform: `translate(-${offset}px, 0)` }}
+          />
+          <path
+            d={platform.paths[1]}
+            style={{ color: "#FE2C55", transform: `translate(${offset}px, 0)` }}
+          />
+        </>
+      ) : (
+        platform.paths.map((p, i) => <path key={i} d={p} />)
+      )}
+    </svg>
+  );
+}
 
 /* ============================================================
    ANIMATED WAVEFORM INSIDE INPUT
@@ -255,7 +307,14 @@ function StepDot({ n, label, state }: { n: number; label: string; state: "done" 
 
 function platformFor(url: string): PlatformInfo {
   if (!url.trim())
-    return { id: "unknown", name: "", host: "", pattern: /^$/ };
+    return {
+      id: "unknown",
+      name: "",
+      host: "",
+      pattern: /^$/,
+      color: "#94a3b8",
+      paths: [],
+    };
   return detectPlatform(url);
 }
 
@@ -280,6 +339,7 @@ export function DownloadForm({
   const [status, setStatus] = useState<DownloadStatus | "idle">("idle");
   const [progress, setProgress] = useState(0);
   const [remaining, setRemaining] = useState(10);
+  const [limit, setLimit] = useState(10);
   const [showPreview, setShowPreview] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
@@ -299,7 +359,7 @@ export function DownloadForm({
   useEffect(() => {
     fetch("/api/download-limit")
       .then((r) => r.json())
-      .then((d) => setRemaining(d.remaining))
+      .then((d) => { setRemaining(d.remaining); setLimit(d.limit); })
       .catch(() => {});
   }, []);
 
@@ -374,8 +434,9 @@ export function DownloadForm({
 
       const remainingRes = await fetch("/api/download-limit")
         .then((r) => r.json())
-        .catch(() => ({ remaining: 0 }));
+        .catch(() => ({ remaining: 0, limit: 10 }));
       setRemaining(remainingRes.remaining);
+      setLimit(remainingRes.limit);
 
       const data = (await res.json()) as { jobId: string };
       jobId = data.jobId;
@@ -465,7 +526,7 @@ export function DownloadForm({
 
   const isBusy =
     status !== "idle" && status !== "ready" && status !== "error";
-  const limitPercent = (remaining / 10) * 100;
+  const limitPercent = (remaining / limit) * 100;
 
   const statusText = useMemo(() => {
     switch (status) {
@@ -671,7 +732,7 @@ export function DownloadForm({
                   color: "var(--muted)",
                 }}
               >
-                <IconSvg d={ICONS.music} size={11} strokeWidth={2.5} />
+                <PlatformIcon platform={platform} size={11} />
                 <span>
                   {t("df.platform")}:{" "}
                   <strong style={{ color: "var(--fg)", fontWeight: 600 }}>
@@ -726,7 +787,7 @@ export function DownloadForm({
                     border: "1px solid rgba(168,85,247,0.2)",
                   }}
                 >
-                  <IconSvg d={ICONS.music} size={20} />
+                  <PlatformIcon platform={platform} size={20} />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div
@@ -898,14 +959,18 @@ export function DownloadForm({
                     style={{
                       width: `${limitPercent}%`,
                       background:
-                        "linear-gradient(90deg, var(--cyan), var(--accent))",
+                        remaining > limit * 0.5
+                          ? "linear-gradient(90deg, #22c55e, #16a34a)"
+                          : remaining > limit * 0.2
+                          ? "linear-gradient(90deg, #eab308, #ca8a04)"
+                          : "linear-gradient(90deg, #ef4444, #dc2626)",
                       transition: "width 0.5s var(--ease-out-expo, cubic-bezier(0.16,1,0.3,1))",
                     }}
                   />
                 </div>
                 <span>
                   <strong style={{ color: "var(--fg)", fontWeight: 600 }}>
-                    {t("df.remaining", { n: remaining })}
+                    {t("df.remaining", { n: remaining, limit })}
                   </strong>
                 </span>
               </div>
