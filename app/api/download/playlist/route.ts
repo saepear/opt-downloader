@@ -26,13 +26,15 @@ import {
   humanizeYtdlpError,
   toUserMessage,
 } from "@/lib/ytdlp-errors";
+import { checkDownloadLimit } from "@/lib/download-limit";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import { SpotDlError, downloadSpotify } from "@/lib/spotdl";
 
 const Body = z.object({
   url: z.string().url().refine((u) => /^https?:\/\//.test(u), {
     message: "Solo se aceptan URLs http(s)",
   }),
-  format: z.enum(["mp3-320", "best"]),
+  format: z.enum(["mp3-320", "best", "wav", "flac"]),
   selectedIds: z.array(z.number().or(z.string())).optional(),
 });
 
@@ -48,6 +50,23 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
   const userId = session.user.id;
+
+  // Daily download limit
+  const ip = clientIpFromHeaders(
+    req.headers.get("x-forwarded-for"),
+    req.headers.get("x-real-ip") ?? "unknown"
+  );
+  const limitCheck = await checkDownloadLimit(ip, userId);
+  if (!limitCheck.ok) {
+    return Response.json(
+      {
+        error: "download_limit",
+        message: "Has alcanzado el límite de descargas por hoy.",
+        details: { remaining: 0, limit: limitCheck.remaining },
+      } satisfies ApiError,
+      { status: 429 }
+    );
+  }
 
   let payload: unknown;
   try {

@@ -9,6 +9,8 @@ import { env } from "@/lib/env";
 import { logger } from "@/lib/logger";
 import { detectPlatform } from "@/lib/platforms";
 import { publishUpdate } from "@/lib/progress-bus";
+import { checkDownloadLimit } from "@/lib/download-limit";
+import { clientIpFromHeaders } from "@/lib/rate-limit";
 import type { ApiError, AudioFormat } from "@/lib/types";
 import {
   YtdlpError,
@@ -25,7 +27,7 @@ const Body = z.object({
   url: z.string().url().refine((u) => /^https?:\/\//.test(u), {
     message: "Solo se aceptan URLs http(s)",
   }),
-  format: z.enum(["mp3-320", "best"]),
+  format: z.enum(["mp3-320", "best", "wav", "flac"]),
 });
 
 export const dynamic = "force-dynamic";
@@ -44,6 +46,23 @@ export async function POST(req: NextRequest): Promise<Response> {
     );
   }
   const userId = session.user.id;
+
+  // 1.5) Daily download limit
+  const ip = clientIpFromHeaders(
+    req.headers.get("x-forwarded-for"),
+    req.headers.get("x-real-ip") ?? "unknown"
+  );
+  const limitCheck = await checkDownloadLimit(ip, userId);
+  if (!limitCheck.ok) {
+    return Response.json(
+      {
+        error: "download_limit",
+        message: "Has alcanzado el límite de 10 descargas por día. Vuelve mañana.",
+        details: { remaining: 0, limit: 10 },
+      } satisfies ApiError,
+      { status: 429 }
+    );
+  }
 
   // 2) Body
   let payload: unknown;

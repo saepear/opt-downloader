@@ -98,3 +98,19 @@ model Download {
   // Índice principal: historial de un usuario ordenado por fecha.
   @@index([userId, createdAt])
 }
+
+// ---------------------------------------------------------------------------
+// Límite diario de descargas por IP (guest) o userId (autenticado).
+// ---------------------------------------------------------------------------
+
+model DailyLimit {
+  id     String  @id @default(cuid())
+  ip     String?
+  userId String?
+  date   String  // YYYY-MM-DD
+  count  Int     @default(1)
+
+  @@unique([ip, date])
+  @@unique([userId, date])
+  @@index([date])
+}
